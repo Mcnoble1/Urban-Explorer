@@ -6,15 +6,44 @@ Urban Explorer is an interactive web application that transforms city exploratio
 
 ## Features ✨
 
-- **Immersive 3D City Exploration**: Experience cities in stunning detail with Photorealistic 3D Maps
-- **Gamified Discovery**: Collect gems and earn points by visiting new locations
-- **Cultural Insights**: Learn interesting facts about each location
-- **Social Features**: Compete on the leaderboard and share discoveries
-- **Interactive Controls**: 
+- **Immersive 3D City Exploration**: 
+  - Experience cities in stunning detail with Photorealistic 3D Maps
   - Auto-orbit for 360° views
   - Toggle map labels
   - Custom 3D markers
-- **Global Coverage**: Explore 50+ cities worldwide
+  - World view from outer space as default perspective
+
+- **AI-Powered Discovery**:
+  - Natural language search for locations
+  - AI-generated location descriptions and fun facts
+  - Automatic tour generation based on user preferences
+  - Smart location recommendations
+
+- **Tour Features**:
+  - Create custom tours manually
+  - AI-generated themed tours
+  - Interactive tour playback with camera controls
+  - Smooth transitions between locations
+  - Duration control for each stop
+
+- **2024 Maps Unwrapped**:
+  - Yearly location summary
+  - Interactive 3D timeline of visited places
+  - Trip statistics and insights
+  - Shareable travel highlights
+  - Distance traveled calculations
+
+- **Social Features**: 
+  - Compete on the leaderboard
+  - Share discoveries
+  - Profile customization
+  - Achievement tracking
+
+- **Cultural Insights**: 
+  - Dynamic fun facts about locations
+  - Historical information
+  - Local recommendations
+  - Points of interest
 
 ## Tech Stack 🛠️
 
@@ -23,6 +52,7 @@ Urban Explorer is an interactive web application that transforms city exploratio
   - Photorealistic 3D Maps
   - Places API
   - Maps JavaScript API
+- Google Gemini AI
 - Framer Motion
 - Tailwind CSS
 - Zustand
@@ -43,9 +73,10 @@ Urban Explorer is an interactive web application that transforms city exploratio
    npm install
    ```
 
-3. Create a `.env` file in the root directory and add your Google Maps API key:
+3. Create a `.env` file in the root directory and add your API keys:
    ```env
-   VITE_GOOGLE_MAPS_API_KEY=your_api_key_here
+   VITE_GOOGLE_MAPS_API_KEY=your_maps_api_key_here
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
 4. Start the development server:
@@ -59,8 +90,9 @@ Urban Explorer is an interactive web application that transforms city exploratio
 2. Select a city from the supported locations
 3. Use the map controls to explore in 3D
 4. Click on markers to discover locations
-5. Collect gems and earn points
-6. Check the leaderboard to see your ranking
+5. Create or generate tours
+6. Track your yearly exploration progress
+7. Share your discoveries
 
 ## Contributing 🤝
 
@@ -79,6 +111,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments 🙏
 
 - Google Maps Platform for their amazing 3D mapping technology
+- Google Gemini AI for intelligent content generation
 - The open-source community for the fantastic tools and libraries
 - All contributors who helped make this project possible
 
@@ -97,10 +130,11 @@ For questions or feedback, please open an issue or contact the maintainers:
 ## Roadmap 🗓️
 
 - [ ] Augmented reality features
-- [ ] User-created exploration routes
 - [ ] Enhanced social features
 - [ ] Seasonal events and challenges
 - [ ] Guided tours with local experts
 - [ ] Mobile app development
+- [ ] Advanced AI recommendations
+- [ ] Virtual reality support
 
 Stay tuned for more exciting features and improvements!

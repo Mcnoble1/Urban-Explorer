@@ -1,18 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-export interface Location {
-  id: string;
-  title: string;
-  description: string;
-  coordinates: { lat: number; lng: number };
-  rating: number;
-  image: string;
-  category: 'cafe' | 'historical' | 'scenic' | 'cultural';
-  visited: boolean;
-  interacted: boolean;
-  points: number;
-}
+import { Location } from '../types/location';
 
 interface LocationState {
   selectedCountry: string | null;
@@ -25,11 +13,12 @@ interface LocationState {
   setSelectedCity: (city: { name: string; coordinates: { lat: number; lng: number } } | null) => void;
   visitLocation: (locationId: string) => void;
   interactWithLocation: (locationId: string) => void;
+  getLocationsByYear: (year: number) => Location[];
 }
 
 export const useLocationStore = create<LocationState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       selectedCountry: null,
       selectedCity: null,
       locations: {},
@@ -41,19 +30,20 @@ export const useLocationStore = create<LocationState>()(
       visitLocation: (locationId) =>
         set((state) => ({
           visitedLocations: [...state.visitedLocations, locationId],
-          points: state.points + 100, // More points for visiting
+          points: state.points + 100,
           locations: {
             ...state.locations,
             [locationId]: {
               ...state.locations[locationId],
               visited: true,
+              visitDate: new Date().toISOString(),
             },
           },
         })),
       interactWithLocation: (locationId) =>
         set((state) => ({
           interactedLocations: [...state.interactedLocations, locationId],
-          points: state.points + 25, // Fewer points for just interacting
+          points: state.points + 25,
           locations: {
             ...state.locations,
             [locationId]: {
@@ -62,6 +52,16 @@ export const useLocationStore = create<LocationState>()(
             },
           },
         })),
+      getLocationsByYear: (year) => {
+        const state = get();
+        return Object.values(state.locations)
+          .filter(location => {
+            if (!location.visitDate) return false;
+            const visitYear = new Date(location.visitDate).getFullYear();
+            return visitYear === year;
+          })
+          .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
+      },
     }),
     {
       name: 'location-storage',

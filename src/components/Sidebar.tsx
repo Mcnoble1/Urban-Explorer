@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Search, MapPin, Loader, Coffee, Building2, TreePine } from 'lucide-react';
 import { CountrySelector } from './CountrySelector';
-import { useLocationStore, Location } from '../store/useLocationStore';
+import { useLocationStore } from '../store/useLocationStore';
 import { fetchPlacesForCity } from '../services/placesService';
 
 interface SidebarProps {
@@ -11,9 +11,11 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onLocationSelect }) => {
   const { selectedCountry, selectedCity } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -27,7 +29,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLocationSelect }) => {
             fetchPlacesForCity(selectedCity.coordinates.lat, selectedCity.coordinates.lng, 'park')
           ]);
 
-          const allLocations = [...attractions, ...cafes, ...museums, ...parks];
+          // Ensure unique IDs by adding category prefix
+          const allLocations = [
+            ...attractions.map(loc => ({ ...loc, id: `attraction-${loc.id}` })),
+            ...cafes.map(loc => ({ ...loc, id: `cafe-${loc.id}` })),
+            ...museums.map(loc => ({ ...loc, id: `museum-${loc.id}` })),
+            ...parks.map(loc => ({ ...loc, id: `park-${loc.id}` }))
+          ];
+          
           setLocations(allLocations);
         } catch (error) {
           console.error('Error loading places:', error);
@@ -40,6 +49,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLocationSelect }) => {
 
     loadPlaces();
   }, [selectedCity]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initAutocomplete = async () => {
+      if (!searchInputRef.current || !window.google) return;
+
+      const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+        fields: ['geometry', 'name', 'place_id', 'formatted_address'],
+        types: ['geocode', 'establishment']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place?.geometry?.location) {
+          onLocationSelect({
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng()
+          });
+        }
+      });
+
+      if (mounted) {
+        autocompleteRef.current = autocomplete;
+      }
+    };
+
+    // Wait for Google Maps API to load
+    const checkGoogleMapsLoaded = setInterval(() => {
+      if (window.google?.maps) {
+        clearInterval(checkGoogleMapsLoaded);
+        initAutocomplete();
+      }
+    }, 100);
+
+    return () => {
+      mounted = false;
+      clearInterval(checkGoogleMapsLoaded);
+    };
+  }, [onLocationSelect]);
 
   const filteredLocations = locations.filter(location =>
     (searchQuery === '' || location.title.toLowerCase().includes(searchQuery.toLowerCase())) &&
@@ -64,6 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLocationSelect }) => {
 
         <div className="mt-4 relative">
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search hidden gems..."
             value={searchQuery}

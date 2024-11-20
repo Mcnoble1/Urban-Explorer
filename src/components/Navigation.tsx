@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Map, User, Trophy, LogIn, LogOut } from 'lucide-react';
+import { Map, User, Trophy, LogIn, LogOut, Navigation2, Search, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { useAuthStore } from '../store/useAuthStore';
@@ -8,6 +8,9 @@ import { useAuthStore } from '../store/useAuthStore';
 const navItems = [
   { path: '/', label: 'Home', icon: Map },
   { path: '/explore', label: 'Explore', icon: Map },
+  { path: '/tours', label: 'Tours', icon: Navigation2 },
+  { path: '/explorers', label: 'The Explorers', icon: Search },
+  { path: '/unwrapped', label: '2024 Unwrapped', icon: Calendar },
   { path: '/profile', label: 'Profile', icon: User },
   { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
 ];
@@ -61,9 +64,9 @@ export const Navigation: React.FC = () => {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-gray-700">
+              {/* <span className="text-sm font-medium text-gray-700">
                 Welcome, {user?.name}
-              </span>
+              </span> */}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"

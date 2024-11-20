@@ -1,6 +1,31 @@
 import { Location } from '../store/useLocationStore';
 
-const PLACES_TYPES = ['tourist_attraction', 'cafe', 'museum', 'park'] as const;
+const PLACES_TYPES = [
+  'tourist_attraction',
+  'cafe',
+  'museum',
+  'park',
+  'landmark',
+  'church',
+  'mosque',
+  'hindu_temple',
+  'synagogue',
+  'place_of_worship',
+  'stadium',
+  'amusement_park',
+  'aquarium',
+  'art_gallery',
+  'casino',
+  'city_hall',
+  'embassy',
+  'library',
+  'movie_theater',
+  'night_club',
+  'shopping_mall',
+  'spa',
+  'zoo'
+] as const;
+
 type PlaceType = typeof PLACES_TYPES[number];
 
 interface PlaceResult {
@@ -17,7 +42,36 @@ interface PlaceResult {
   }>;
   rating?: number;
   vicinity?: string;
+  types?: string[];
 }
+
+const getPointsForType = (type: string): number => {
+  const pointsMap: Record<string, number> = {
+    tourist_attraction: 100,
+    landmark: 100,
+    museum: 80,
+    art_gallery: 80,
+    place_of_worship: 70,
+    park: 60,
+    cafe: 40,
+    restaurant: 40,
+    default: 50
+  };
+  return pointsMap[type] || pointsMap.default;
+};
+
+const getCategoryForType = (types: string[]): Location['category'] => {
+  if (types.some(t => ['tourist_attraction', 'landmark', 'museum', 'art_gallery'].includes(t))) {
+    return 'cultural';
+  }
+  if (types.some(t => ['cafe', 'restaurant', 'food'].includes(t))) {
+    return 'cafe';
+  }
+  if (types.some(t => ['park', 'natural_feature'].includes(t))) {
+    return 'scenic';
+  }
+  return 'cultural';
+};
 
 export const fetchPlacesForCity = async (
   lat: number,
@@ -25,30 +79,27 @@ export const fetchPlacesForCity = async (
   type: PlaceType
 ): Promise<Location[]> => {
   try {
-    const { PlacesService } = await google.maps.importLibrary("places") as any;
-    
-    // Create a dummy map element for PlacesService
-    const mapDiv = document.createElement('div');
-    const map = new google.maps.Map(mapDiv, {
-      center: { lat, lng },
-      zoom: 15
-    });
+    if (!window.google?.maps) {
+      throw new Error('Google Maps not loaded');
+    }
 
-    const service = new PlacesService(map);
+    const service = new window.google.maps.places.PlacesService(
+      new window.google.maps.Map(document.createElement('div'))
+    );
 
     return new Promise((resolve, reject) => {
       const request = {
         location: { lat, lng },
         radius: 5000, // 5km radius
         type: type,
-        rankBy: google.maps.places.RankBy.RATING
+        rankBy: window.google.maps.places.RankBy.RATING
       };
 
       service.nearbySearch(request, (results: PlaceResult[] | null, status: any) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
           const locations: Location[] = results
-            .filter(place => place.rating && place.rating >= 4.0) // Only places with good ratings
-            .slice(0, 5) // Limit to top 5 places
+            .filter(place => place.rating && place.rating >= 4.0)
+            .slice(0, 5)
             .map(place => ({
               id: place.place_id,
               title: place.name,
@@ -60,19 +111,14 @@ export const fetchPlacesForCity = async (
               rating: place.rating || 4.0,
               image: place.photos?.[0]?.getUrl() || 
                 `https://source.unsplash.com/800x600/?${type.replace('_', '-')}`,
-              category: type === 'tourist_attraction' ? 'cultural' : 
-                       type === 'cafe' ? 'cafe' : 
-                       type === 'museum' ? 'cultural' : 'scenic',
+              category: getCategoryForType(place.types || []),
               visited: false,
               interacted: false,
-              points: type === 'tourist_attraction' ? 100 : 
-                      type === 'museum' ? 80 : 
-                      type === 'park' ? 60 : 40
+              points: getPointsForType(place.types?.[0] || 'default')
             }));
           resolve(locations);
         } else {
           console.warn('Places API returned no results, using fallback data');
-          // Use fallback data with correct coordinates
           resolve(getFallbackLocations(lat, lng, type));
         }
       });
@@ -83,7 +129,6 @@ export const fetchPlacesForCity = async (
   }
 };
 
-// Fallback data in case the API fails
 const getFallbackLocations = (lat: number, lng: number, type: PlaceType): Location[] => {
   const fallbackLocations: Record<PlaceType, Location[]> = {
     tourist_attraction: [
@@ -96,6 +141,23 @@ const getFallbackLocations = (lat: number, lng: number, type: PlaceType): Locati
           lng: lng + (Math.random() - 0.5) * 0.01
         },
         rating: 4.8,
+        image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&q=80',
+        category: 'cultural',
+        visited: false,
+        interacted: false,
+        points: 100
+      }
+    ],
+    landmark: [
+      {
+        id: 'fallback-2',
+        title: 'City Monument',
+        description: 'Iconic landmark representing local history',
+        coordinates: { 
+          lat: lat + (Math.random() - 0.5) * 0.01,
+          lng: lng + (Math.random() - 0.5) * 0.01
+        },
+        rating: 4.9,
         image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&q=80',
         category: 'cultural',
         visited: false,
@@ -156,5 +218,6 @@ const getFallbackLocations = (lat: number, lng: number, type: PlaceType): Locati
     ]
   };
 
-  return fallbackLocations[type];
+  // For any other place type, return tourist attraction fallback
+  return fallbackLocations[type] || fallbackLocations.tourist_attraction;
 };

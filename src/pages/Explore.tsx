@@ -7,8 +7,8 @@ import { useLocationStore } from '../store/useLocationStore';
 export const Explore: React.FC = () => {
   const { selectedCity } = useLocationStore();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [mapCenter, setMapCenter] = useState(
-    selectedCity?.coordinates || { lat: 40.7128, lng: -74.0060 } // Default to New York
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>(
+    selectedCity?.coordinates
   );
 
   const handleLocationSelect = (coordinates: { lat: number; lng: number }) => {
@@ -20,7 +20,10 @@ export const Explore: React.FC = () => {
       <div className="flex h-full">
         <Sidebar onLocationSelect={handleLocationSelect} />
         <div className="flex-1 relative">
-          <Map center={mapCenter} />
+          <Map 
+            center={mapCenter}
+            locationName={selectedLocation?.title || selectedCity?.name}
+          />
           {selectedLocation && (
             <LocationDetails
               location={selectedLocation}

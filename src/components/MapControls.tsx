@@ -20,7 +20,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="absolute bottom-6 right-6 bg-white rounded-lg shadow-lg p-2 space-y-2 z-30"
+      className="absolute bottom-24 right-6 bg-white rounded-lg shadow-lg p-2 space-y-2 z-30"
     >
       <div className="group relative">
         <button

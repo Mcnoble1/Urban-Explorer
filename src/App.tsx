@@ -6,6 +6,9 @@ import { Home } from './pages/Home';
 import { Explore } from './pages/Explore';
 import { Profile } from './pages/Profile';
 import { Leaderboard } from './pages/Leaderboard';
+import { Tours } from './pages/Tours';
+import { Explorers } from './pages/Explorers';
+import { MapsUnwrapped } from './pages/MapsUnwrapped';
 import { Auth } from './pages/Auth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -23,6 +26,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Explore />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="tours"
+              element={
+                <ProtectedRoute>
+                  <Tours />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="explorers"
+              element={
+                <ProtectedRoute>
+                  <Explorers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="unwrapped"
+              element={
+                <ProtectedRoute>
+                  <MapsUnwrapped />
                 </ProtectedRoute>
               }
             />

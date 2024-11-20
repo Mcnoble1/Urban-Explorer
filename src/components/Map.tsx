@@ -1,43 +1,68 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { useLocationStore } from '../store/useLocationStore';
 import { MapControls } from './MapControls';
 import { LocationOverlay } from './LocationOverlay';
 import { GemOverlay } from './GemOverlay';
+import { generateFunFact } from '../services/aiService';
 
 interface MapProps {
-  center: { lat: number; lng: number };
+  center?: { lat: number; lng: number };
+  locationName?: string;
+  onMapLoad?: (map: any) => void;
 }
 
-export const Map: React.FC<MapProps> = ({ center }) => {
+export const Map: React.FC<MapProps> = ({ center, locationName, onMapLoad }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const map3DElementRef = useRef<any>(null);
-  const loaderRef = useRef<Loader>();
   const [showGem, setShowGem] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [autoOrbit, setAutoOrbit] = useState(false);
   const [showFunFact, setShowFunFact] = useState(false);
+  const [funFact, setFunFact] = useState<string>('');
   const { visitLocation } = useLocationStore();
   const markerRef = useRef<any>(null);
   const polygonRef = useRef<any>(null);
   const orbitIntervalRef = useRef<number>();
   const [gemPosition, setGemPosition] = useState({ x: 0, y: 0 });
 
-  const getFunFact = () => {
-    const facts = [
-      "This location is known for its unique architectural style that blends modern and traditional elements.",
-      "Local legends say this spot was once a gathering place for artists and musicians in the early 20th century.",
-      "The surrounding area features some of the city's oldest trees, planted over 100 years ago.",
-      "This location offers one of the best viewpoints for watching the sunset in the city.",
-    ];
-    return facts[Math.floor(Math.random() * facts.length)];
+  const defaultView = {
+    lat: 0,
+    lng: 0,
+    altitude: 25000000 // High altitude for world view
   };
 
-  const updateMapView = (mapContainer: any, newCenter: { lat: number; lng: number }) => {
-    mapContainer.setAttribute('center', `${newCenter.lat},${newCenter.lng},300`);
-    mapContainer.setAttribute('tilt', '45');
-    mapContainer.setAttribute('heading', '0');
-    mapContainer.setAttribute('range', '500');
+  const updateMapView = async (mapContainer: any, newCenter?: { lat: number; lng: number }) => {
+    if (!window.google?.maps) return;
+
+    const elevatorService = new window.google.maps.ElevationService();
+    
+    try {
+      if (newCenter) {
+        const response = await elevatorService.getElevationForLocations({
+          locations: [newCenter],
+        });
+        
+        const elevation = response.results?.[0]?.elevation || 300;
+        
+        mapContainer.setAttribute('center', `${newCenter.lat},${newCenter.lng},${elevation}`);
+        mapContainer.setAttribute('tilt', '45');
+        mapContainer.setAttribute('heading', '0');
+        mapContainer.setAttribute('range', '500');
+      } else {
+        // Set default world view
+        mapContainer.setAttribute('center', `${defaultView.lat},${defaultView.lng},${defaultView.altitude}`);
+        mapContainer.setAttribute('tilt', '0');
+        mapContainer.setAttribute('heading', '0');
+      }
+
+      if (locationName) {
+        const fact = await generateFunFact(locationName);
+        setFunFact(fact);
+        setShowFunFact(true);
+      }
+    } catch (error) {
+      console.error('Error updating map view:', error);
+    }
   };
 
   const createPolygon = async (mapContainer: any, center: { lat: number; lng: number }) => {
@@ -71,17 +96,7 @@ export const Map: React.FC<MapProps> = ({ center }) => {
 
     const initMap = async () => {
       try {
-        if (!loaderRef.current) {
-          loaderRef.current = new Loader({
-            apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-            version: 'alpha',
-            libraries: ['maps3d', 'elevation', 'places'],
-          });
-        }
-
-        await loaderRef.current.load();
-
-        if (!mapRef.current || !isMounted) return;
+        if (!mapRef.current || !isMounted || !window.google?.maps) return;
 
         let mapContainer = map3DElementRef.current;
         
@@ -100,51 +115,64 @@ export const Map: React.FC<MapProps> = ({ center }) => {
           }
           mapRef.current.appendChild(mapContainer);
           map3DElementRef.current = mapContainer;
+
+          if (onMapLoad) {
+            onMapLoad(mapContainer);
+          }
         }
 
-        updateMapView(mapContainer, center);
+        await updateMapView(mapContainer, center);
 
-        if (markerRef.current) {
-          mapContainer.removeChild(markerRef.current);
+        if (center) {
+          if (markerRef.current) {
+            mapContainer.removeChild(markerRef.current);
+          }
+          if (polygonRef.current) {
+            mapContainer.removeChild(polygonRef.current);
+          }
+
+          polygonRef.current = await createPolygon(mapContainer, center);
+
+          const marker = document.createElement('gmp-marker-3d');
+          marker.setAttribute('position', `${center.lat},${center.lng},50`);
+          marker.setAttribute('title', locationName || 'Selected Location');
+          marker.setAttribute('altitude-mode', 'RELATIVE_TO_GROUND');
+          marker.setAttribute('extruded', 'true');
+          mapContainer.appendChild(marker);
+          markerRef.current = marker;
+
+          const mapRect = mapRef.current.getBoundingClientRect();
+          setGemPosition({
+            x: mapRect.width * 0.75,
+            y: mapRect.height * 0.25,
+          });
+
+          marker.addEventListener('click', () => {
+            setShowFunFact(true);
+          });
         }
-        if (polygonRef.current) {
-          mapContainer.removeChild(polygonRef.current);
-        }
-
-        polygonRef.current = await createPolygon(mapContainer, center);
-
-        const marker = document.createElement('gmp-marker-3d');
-        marker.setAttribute('position', `${center.lat},${center.lng},50`);
-        marker.setAttribute('title', 'Selected Location');
-        marker.setAttribute('altitude-mode', 'RELATIVE_TO_GROUND');
-        marker.setAttribute('extruded', 'true');
-        mapContainer.appendChild(marker);
-        markerRef.current = marker;
-
-        const mapRect = mapRef.current.getBoundingClientRect();
-        setGemPosition({
-          x: mapRect.width * 0.75,
-          y: mapRect.height * 0.25,
-        });
-
-        marker.addEventListener('click', () => {
-          setShowFunFact(true);
-        });
 
       } catch (error) {
         console.error('Error initializing map:', error);
       }
     };
 
-    initMap();
+    // Wait for Google Maps API to load
+    const checkGoogleMapsLoaded = setInterval(() => {
+      if (window.google?.maps) {
+        clearInterval(checkGoogleMapsLoaded);
+        initMap();
+      }
+    }, 100);
 
     return () => {
       isMounted = false;
+      clearInterval(checkGoogleMapsLoaded);
       if (orbitIntervalRef.current) {
         clearInterval(orbitIntervalRef.current);
       }
     };
-  }, [center, showLabels]);
+  }, [center, showLabels, onMapLoad, locationName]);
 
   useEffect(() => {
     if (autoOrbit && map3DElementRef.current) {
@@ -188,7 +216,7 @@ export const Map: React.FC<MapProps> = ({ center }) => {
           {showFunFact && (
             <LocationOverlay
               title="Location Fun Fact"
-              funFact={getFunFact()}
+              funFact={funFact}
               onClose={() => setShowFunFact(false)}
             />
           )}
