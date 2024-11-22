@@ -19,35 +19,41 @@ export const Explorers: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+
   const searchLocations = async () => {
     if (!searchQuery.trim()) return;
-
+  
     setIsLoading(true);
     setError(null);
-
+  
     try {
       const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
+  
       const prompt = `Generate a list of locations matching the search: "${searchQuery}". 
         For each location, provide:
         1. The exact name of the place
         2. A brief one-sentence description
         Format as JSON array with properties: name, description`;
-
+  
       const result = await model.generateContent(prompt);
       const response = await result.response;
-
-      const text = response.text();
-      const jsonStr = text.replace(/```json\n?|\n?```/gi, '').trim();
-      console.log(jsonStr);
+  
+      const text = await response.text();
+      console.log(text);
+  
+      // Extract only the JSON array from the response
+      const jsonArrayMatch = text.match(/\[.*?\]/s); // Matches the first JSON array
+      if (!jsonArrayMatch) throw new Error("No JSON array found in the response.");
+      const jsonStr = jsonArrayMatch[0];
+  
       const locationsList = JSON.parse(jsonStr);
-
+  
       const { PlacesService } = await google.maps.importLibrary("places") as any;
       const mapDiv = document.createElement('div');
       const map = new google.maps.Map(mapDiv);
       const service = new PlacesService(map);
-
+  
       const locationsWithCoordinates = await Promise.all(
         locationsList.map(async (loc: any) => {
           return new Promise<Location>((resolve, reject) => {
@@ -77,7 +83,7 @@ export const Explorers: React.FC = () => {
           }).catch(() => null);
         })
       );
-
+  
       const validLocations = locationsWithCoordinates.filter((loc): loc is Location => loc !== null);
       
       if (validLocations.length === 0) {
